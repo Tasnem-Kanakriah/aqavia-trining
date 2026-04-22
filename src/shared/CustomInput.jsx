@@ -9,7 +9,7 @@ const CustomInput = ({ type, value, onChange, label, options }) => {
           onChange={onChange}
         />
       </div>
-    );
+    ); 
   } else if (type === "select") {
     return (
       <div>
