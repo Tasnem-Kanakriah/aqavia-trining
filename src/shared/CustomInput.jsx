@@ -1,65 +1,54 @@
 const CustomInput = ({ type, value, onChange, label, options }) => {
-  if (type === "textarea") {
-    return (
-      <div>
-        <label>{label} </label>
-        <textarea
-          style={{ margin: "10px" }}
-          value={value}
-          onChange={onChange}
-        />
-      </div>
-    ); 
-  } else if (type === "select") {
-    return (
-      <div>
-        <label>{label} </label>
-        <select style={{ margin: "10px" }} onChange={onChange} value={value}>
-          {options.map((option, index) => {
-            return (
+  const renderInput = () => {
+    const commonProps = {
+      value: value,
+      onChange: onChange,
+    };
+
+    switch (type) {
+      case "textarea":
+        return <textarea {...commonProps} />;
+
+      case "select":
+        return (
+          <select {...commonProps}>
+            {options?.map((option, index) => (
               <option key={index} value={option}>
                 {option}
               </option>
-            );
-          })}
-        </select>
-      </div>
-    );
-  } else if (type === "checkbox") {
-    return (
-      <div>
-        <label>{label} </label>
-        <input
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(event) => onChange( event.target.checked )}
-        />
-      </div>
-    );
-  } else if (type === "radio") {
-    return (
-      <div>
-        <label>{label} </label>
-        <input
-          type="radio"
-          checked={value === true}
-          onChange={() => onChange({ target: { value: true } })}
-        />
-      </div>
-    );
-  } else {
-    return (
-      <div>
-        <label>{label} </label>
-        <input
-          style={{ margin: "10px" }}
-          type={type}
-          value={value}
-          onChange={onChange}
-        />
-      </div>
-    );
-  }
+            ))}
+          </select>
+        );
+
+      case "checkbox":
+        return (
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+        );
+
+      case "radio":
+        return (
+          <input
+            type="radio"
+            checked={value === true}
+            onChange={() => onChange({ target: { value: true } })}
+          />
+        );
+
+      default:
+        return <input type={type} {...commonProps} />;
+    }
+  };
+
+  return (
+    <div style={{margin: "20px"}}>
+      <label>{label} </label>
+      {renderInput()}
+    </div>
+  );
 };
 
 export default CustomInput;
