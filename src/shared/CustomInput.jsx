@@ -1,8 +1,9 @@
-const CustomInput = ({ type, value, onChange, label, options }) => {
+const CustomInput = ({ type, value, onChange, label, options, checked }) => {
   const renderInput = () => {
     const commonProps = {
       value: value,
       onChange: onChange,
+      className: "m-[10px] border p-2 rounded",
     };
 
     switch (type) {
@@ -26,6 +27,7 @@ const CustomInput = ({ type, value, onChange, label, options }) => {
             type="checkbox"
             checked={Boolean(value)}
             onChange={(e) => onChange(e.target.checked)}
+            className="m-2.5"
           />
         );
 
@@ -33,19 +35,26 @@ const CustomInput = ({ type, value, onChange, label, options }) => {
         return (
           <input
             type="radio"
-            checked={value === true}
-            onChange={() => onChange({ target: { value: true } })}
+            checked={Boolean(value === true || checked)}
+            onChange={() => onChange(value)}
+            className="m-2.5 w-4 h-4 text-blue-600 focus:ring-blue-500"
           />
         );
 
       default:
-        return <input type={type} {...commonProps} />;
+        return (
+          <input
+            type={type}
+            {...commonProps}
+            value={type === "file" ? "" : value}
+          />
+        );
     }
   };
 
   return (
-    <div style={{margin: "20px"}}>
-      <label>{label} </label>
+    <div className="flex flex-col mb-4">
+      <label className="font-semibold">{label}</label>
       {renderInput()}
     </div>
   );
