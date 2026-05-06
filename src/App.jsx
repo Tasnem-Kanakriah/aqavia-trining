@@ -1,136 +1,124 @@
 import { useEffect, useState } from "react";
 import CustomInput from "../src/shared/CustomInput";
 
-const inputs = [
-  { name: "destination", type: "text", label: "Where did you go? 📍" },
-  { name: "experience", type: "textarea", label: "Tell us about your adventure... ✨" },
-  { name: "tripType", type: "select", label: "Trip Type", options: ["Solo Adventure", "Family Trip", "Honeymoon", "Friends Trip"] },
-  { name: "heroImage", type: "file", label: "Upload a beautiful photo 📸" },
-  { name: "momentVideo", type: "file", label: "Upload a short video clip 🎥" },
-  { name: "recommend", type: "checkbox", label: "I highly recommend visiting this place!" },
-  { name: "privacy", type: "radio", label: "Public Post (Everyone can see)", value: "public" },
-  { name: "privacy", type: "radio", label: "Private Post (Only me)", value: "private" },
+const commentInputs = [
+  { name: "name", type: "text", label: "Your Name" },
+  { name: "email", type: "email", label: "Email Address" },
+  { name: "body", type: "textarea", label: "Share your travel experience..." },
 ];
+const API_URL = "https://jsonplaceholder.typicode.com/comments";
 
 function App() {
-  const [formData, setFormData] = useState(() => {
-    const saved = localStorage.getItem("travelPost");
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [comments, setComments] = useState([]);
+  const [formData, setFormData] = useState({});
+  const [isEditing, setIsEditing] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleOnChange(name, value, type) {
-    let finalValue = value;
-    if (type === "file") {
-      const file = value.target?.files?.[0];
-      if (file) {
-        finalValue = {
-          url: URL.createObjectURL(file),
-          fileType: file.type
-        };
+  useEffect(() => {
+    const loadComments = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_URL}?_limit=30`);
+        const data = await res.json();
+        setComments(data);
+      } catch (error) {
+        console.error("Error loading comments:", error);
+      } finally {
+        setLoading(false);
       }
-    } else if (type === "radio") {
-      finalValue = value;
-    } else if (value?.target) {
-      finalValue = value.target.value;
-    }
+    };
+
+    loadComments();
+  }, []);
+  
+  function handleOnChange(name, val) {
+    const finalValue = val?.target ? val.target.value : val;
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }
 
-  useEffect(() => {
-    localStorage.setItem("travelPost", JSON.stringify(formData));
-  }, [formData]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const method = isEditing ? "PUT" : "POST";
+    const url = isEditing ? `${API_URL}/${isEditing}` : API_URL;
+
+    if (isEditing) {
+      setComments(comments.map(c => c.id === isEditing ? { ...c, ...formData } : c));
+    } else {
+      const newComment = { ...formData, id: Date.now() };
+      setComments([newComment, ...comments]);
+    }
+
+    setFormData({});
+    setIsEditing(null);
+
+    fetch(url, {
+      method: method,
+      body: JSON.stringify(formData),
+      headers: { "Content-type": "application/json" },
+    });
+  };
+
+  const handleDelete = (id) => {
+    setComments(comments.filter((c) => c.id !== id));
+    fetch(`${API_URL}/${id}`, { method: "DELETE" });
+  };
+
+  const startEdit = (comment) => {
+    setFormData(comment);
+    setIsEditing(comment.id);
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen font-sans bg-white">
-      <div className="p-8 lg:p-12 border-r overflow-y-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen bg-slate-50 font-sans">
+      <div className="p-8 bg-white border-r">
         <div className="max-w-md mx-auto">
-          <h2 className="text-3xl font-black mb-2 text-blue-600 italic tracking-tight">Kazdura Editor</h2>
-          <p className="text-gray-400 mb-8 text-sm">Design your travel story in real-time.</p>
+          <h2 className="text-3xl font-black mb-2 text-blue-600 italic">Kazdura Reviews</h2>
+          <p className="text-gray-400 mb-8 text-sm">Help others by sharing your journey.</p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {commentInputs.map((item, idx) => (
+              <CustomInput
+                key={idx}
+                type={item.type}
+                label={item.label}
+                value={formData[item.name] || ""}
+                onChange={(val) => handleOnChange(item.name, val)}
+              />
+            ))}
+            <button className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+              {isEditing ? "Update My Review" : "Post My Experience"}
+            </button>
+          </form>
+        </div>
+      </div>
 
+      <div className="p-8 overflow-y-auto max-h-screen">
+        <h2 className="font-bold text-slate-400 uppercase tracking-widest text-[10px] mb-6">Latest Travel Stories</h2>
+
+        {loading ? <p className="text-center italic text-blue-500">Loading memories...</p> : (
           <div className="space-y-6">
-            {inputs.map((item, idx) => (
-              <div key={idx} className="pb-2 border-b border-gray-50">
-                <CustomInput
-                  key={item.name}
-                  type={item.type}
-                  label={item.label}
-                  value={item.type === "radio" ? item.value : (formData[item.name] || "")}
-                  checked={item.type === "radio" ? formData[item.name] === item.value : undefined}
-                  onChange={(val) => handleOnChange(item.name, val, item.type)}
-                  options={item.options}
-                />
+            {comments.map((comment) => (
+              <div key={comment.id} className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100 relative group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase text-xs">
+                      {comment.name?.charAt(0) || "U"}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm capitalize">{comment.name}</h4>
+                      <p className="text-[10px] text-gray-400">{comment.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ">
+                    <button onClick={() => startEdit(comment)} className="text-blue-400 cursor-pointer hover:text-blue-600 text-base font-bold">Edit</button>
+                    <button onClick={() => handleDelete(comment.id)} className="text-red-400 cursor-pointer hover:text-red-600 text-base font-bold">Delete</button>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-sm leading-relaxed italic">"{comment.body}"</p>
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
-      <div className="p-8 lg:p-12 bg-slate-50 flex items-center justify-center sticky top-0 h-screen overflow-y-auto">
-        <div className="w-full max-w-sm">
-          <h2 className="text-center text-slate-300 font-bold tracking-[0.3em] mb-8 uppercase text-[10px]">Live Experience Preview</h2>
-          <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden border border-white relative">
-            <div className="h-64 bg-gray-100 relative shadow-inner">
-              {formData.heroImage?.url ? (
-                <img src={formData.heroImage.url} alt="Travel" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
-                  <span className="text-4xl mb-2">🖼️</span>
-                  <span className="text-xs italic tracking-wide">Awaiting your masterpiece</span>
-                </div>
-              )}
-              {formData.tripType && (
-                <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black text-blue-600 shadow-xl uppercase">
-                  {formData.tripType}
-                </div>
-              )}
-            </div>
-
-            <div className="p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">
-                {formData.destination || "Where to next?"}
-              </h3>
-
-              {formData.recommend && (
-                <div className="inline-flex items-center gap-2 bg-green-50 text-green-600 px-3 py-1 rounded-lg text-[9px] font-bold mb-4 uppercase tracking-tighter">
-                  <span className="text-sm">✨</span> Must Visit Place
-                </div>
-              )}
-
-              <p className="text-gray-500 text-sm leading-relaxed mb-8 font-light italic">
-                "{formData.experience || "The world is a book, and those who do not travel read only one page..."}"
-              </p>
-
-              {formData.momentVideo?.url && (
-                <div className="mb-8 rounded-2xl overflow-hidden shadow-2xl border-4 border-white aspect-video bg-black">
-                  <video controls className="w-full h-full object-cover">
-                    <source src={formData.momentVideo.url} type={formData.momentVideo.fileType} />
-                  </video>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-6 border-t border-gray-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-blue-200">
-                    T
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-900 tracking-tight">Tasnem</p>
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                      <p className="text-[9px] text-gray-400 font-medium uppercase tracking-widest">
-                        {formData.privacy || "Draft"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <button className="bg-slate-50 hover:bg-red-50 p-2 rounded-full transition-colors duration-300">
-                  <span className="text-red-400">❤️</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 }
